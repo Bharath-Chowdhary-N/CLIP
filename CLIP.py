@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torchvision.models as models
 from torch.nn import Functional as F
-
+import numpy as np
 class image_encoder(nn.Module):
     def __init__(self, embed_dim=128):
         super().__init__()
@@ -104,9 +104,41 @@ class MultiheadAttention(nn.Module):
         return x
 
 class CLIP(nn.Module):
-    def __init__(self, embed_dim=128):
+    def __init__(self, embed_dim=128, temperature = 0.2):
         super().__init__()
-    def forward(x):
-        pass
+        
+        self.image_encoder = image_encoder(embed_dim=embed_dim)
+
+        self.text_encoder  = text_encoder(embed_dim=embed_dim) #change other params if you want to
+
+        self.temperature = temperature #adjusts the diversity of the output, for more diverse output increase this value
+
+        self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1/self.temperature))
+    
+    def forward(self, images, text):
+
+        #image_features = self.image_encoder(images)
+
+        #text_features = self.text_encoder(text)
+
+        image_features = F.normalize(self.image_encoder(images), dim=-1)
+
+        text_features = F.normalize(self.text_encoder(text), dim=-1)
+
+        logit_scale = self.logit_scale.exp()
+        
+        logits = logit_scale * image_features @ text_features.t()
+
+        labels = torch.arange(len(images)).to(images.device) 
+
+        return logits, labels
+
+    # below functions encode_image and encode_text are not used in forward, but later if needed for inference, they can be handy
+    def encode_image(self, images):
+        return F.normalize(self.image_encoder(images), dim=-1)
+    
+    def encode_text(self, text):
+        return F.normalize(self.text_encoder(text), dim=-1)
+        
 
 
