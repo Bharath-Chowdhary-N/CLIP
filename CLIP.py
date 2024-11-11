@@ -19,10 +19,20 @@ class text_encoder(nn.Module):
         self.transformer_width = transformer_width # internal feature size of the transformer, represents each token's hidden representation
         
 class TransformerBlock(nn.Module):
-    def __init__(self):
+    def __init__(self, d_model, heads, mlp_ratio=4):
         super().__init__()
+        self.attn = MultiheadAttention(d_model, heads)
+        self.ln_1 = nn.LayerNorm(d_model) # first layer norm
+        self.mlp = nn.Sequential(
+            nn.Linear(d_model, int(d_model * mlp_ratio)),
+            nn.GELU(),
+            nn.Linear(int(d_model*mlp_ratio), width)
+        )
+        self.ln_2 = nn.LayerNorm(d_model)
     def forward(self,x):
-        pass
+        x = x + self.attn(self.ln_1(x)) # do prelayer norm, then attn, then residual connection
+        x = x + self.mlp(self.ln_2(x)) # same as above, but with mlp
+        return x
 class MultiheadAttention(nn.Module):
     def __init__(self,d_model, heads):
         super().__init__()
