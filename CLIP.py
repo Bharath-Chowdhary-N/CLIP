@@ -4,7 +4,7 @@ import torchvision.models as models
 from torch.nn import Functional as F
 
 class image_encoder(nn.Module):
-    def __init__(self, embed_dim=512):
+    def __init__(self, embed_dim=128):
         super().__init__()
         self.resnet = models.resnet50(pretrained=True)
         self.resnet.fc = nn.Linear(2048,embed_dim)
@@ -59,8 +59,6 @@ class text_encoder(nn.Module):
         return x
 
 
-
-
 class TransformerBlock(nn.Module):
     def __init__(self, d_model, heads, mlp_ratio=4):
         super().__init__()
@@ -105,6 +103,10 @@ class MultiheadAttention(nn.Module):
 
         return x
 
-
+class CLIP(nn.Module):
+    def __init__(self, embed_dim=128):
+        super().__init__()
+    def forward(x):
+        pass
 
 
