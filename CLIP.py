@@ -24,8 +24,29 @@ class MultiheadAttention(nn.Module):
         self.d_model = d_model #d_model as mentioned in paper
         self.heads = heads # num transformer heads
         self.scale = (self.d_model/self.heads)**-0.5 # the denominator sq.(dv) in paper is modified as scale
+
+        #combine the Q,K,V into a single projection
+        self.qkv = nn.linear(self.d_model,self.d_model*3)
+
+        #Add a final projection layer
+        self.proj = nn.Linear(self.d_model, self.d_model)
+
     def forward(self,x):
-        pass    
+        batch_size, seq_len, _ = x.shape #batch_size is the number of samples to be prcoessed at once, seq_len is the length fo sequence, should match context length
+        
+        qkv = self.qkv(x).chunk(3, dim=-1)
+        q, k, v = map(lambda t: t.view(batch_size, seq_len, self.heads, -1).transpose(1,2), qkv)
+        
+        # Compute attention
+        attn = (q @ k.tranpose(-2, -1)) * self.scale
+        attn = attn.softmax(dim=-1)
+
+        #apply attention
+        x = (attn @ v).transpose(1, 2).reshape(batch_size, seq_len, self.width)
+        x = self.proj(x)
+
+        return x
+
 
 
 
