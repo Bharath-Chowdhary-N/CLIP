@@ -4,8 +4,9 @@ import torchvision.models as models
 from torch.nn import Functional as F
 
 class image_encoder(nn.Module):
-    def __init__(self):
+    def __init__(self, embed_dim=512):
         super().__init__()
-        pass
+        self.resnet = models.resnet50(pretrained=True)
+        self.resnet.fc = nn.Linear(2048,embed_dim)
     def forward():
         pass

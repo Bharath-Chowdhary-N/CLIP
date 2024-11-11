@@ -1,3 +1,4 @@
+#Purpose: To print the ResNet model summary for a given input shape
 import torch
 import torch.nn as nn
 from torchvision.models import resnet50
