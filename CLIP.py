@@ -8,5 +8,5 @@ class image_encoder(nn.Module):
         super().__init__()
         self.resnet = models.resnet50(pretrained=True)
         self.resnet.fc = nn.Linear(2048,embed_dim)
-    def forward():
-        pass
+    def forward(self, x):
+        return self.resnet(x)
