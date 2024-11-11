@@ -18,6 +18,11 @@ class text_encoder(nn.Module):
         self.context_length = context_length # set to 64, as we are gong to process at max 10 params, we can increase this value in future based on need
         self.transformer_width = transformer_width # internal feature size of the transformer, represents each token's hidden representation
         
+class TransformerBlock(nn.Module):
+    def __init__(self):
+        super().__init__()
+    def forward(self,x):
+        pass
 class MultiheadAttention(nn.Module):
     def __init__(self,d_model, heads):
         super().__init__()
