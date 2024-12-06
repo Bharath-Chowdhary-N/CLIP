@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torchvision.models as models
-from torch.nn import Functional as F
+from torch.nn import functional as F
 import numpy as np
 class image_encoder(nn.Module):
     def __init__(self, embed_dim=128):
@@ -21,9 +21,15 @@ class text_encoder(nn.Module):
         self.transformer_heads = transformer_heads # heads for multihead attention
         self.mlp_ratio = mlp_ratio # how much you want to expand the representation of nn final layer
         self.embed_dim = embed_dim #how much you want to project the final text embedding
+        # assertion
+        print(self.vocab_size)
+        assert isinstance(self.vocab_size, int), "vocab_size must be an integer."
+        assert isinstance(self.transformer_width, int), "transformer_width must be an integer."
+        print(f"vocab_size: {self.vocab_size}, transformer_width: {self.transformer_width}")
         # add token embedding
         self.token_embedding = nn.Embedding(self.vocab_size, self.transformer_width)
-        self.positional_embedding = nn.Parameter(torch.empty(self.context_length, self.transformer_width))
+        self.positional_embedding = nn.Parameter(torch.randn(self.context_length, self.transformer_width)*0.01)
+        
 
         transformer_blocks = [] #initialize empty list
 
@@ -34,12 +40,12 @@ class text_encoder(nn.Module):
 
         self.ln_final = nn.LayerNorm(self.transformer_width) #final layer normalization
 
-        self.text_projection = nn.Parameter(torch.epty(self.transformer_width, self.embed_dim))
+        self.text_projection = nn.Parameter(torch.randn(self.transformer_width, self.embed_dim)*0.01)
 
         self.initialize_parameters()
 
     def initialize_parameters(self):
-        nn.init_normal_(self.token_embedding.weight, std=0.02)
+        nn.init.normal_(self.token_embedding.weight, std=0.02)
         nn.init.normal_(self.positional_embedding, std=0.01)
         nn.init.normal_(self.text_projection, std = self.transformer_width**-0.5)
     def forward(self, text):
@@ -80,9 +86,10 @@ class MultiheadAttention(nn.Module):
         self.d_model = d_model #d_model as mentioned in paper
         self.heads = heads # num transformer heads
         self.scale = (self.d_model/self.heads)**-0.5 # the denominator sq.(dv) in paper is modified as scale
+        
 
         #combine the Q,K,V into a single projection
-        self.qkv = nn.linear(self.d_model,self.d_model*3)
+        self.qkv = nn.Linear(self.d_model,self.d_model*3)
 
         #Add a final projection layer
         self.proj = nn.Linear(self.d_model, self.d_model)
@@ -94,11 +101,11 @@ class MultiheadAttention(nn.Module):
         q, k, v = map(lambda t: t.view(batch_size, seq_len, self.heads, -1).transpose(1,2), qkv)
         
         # Compute attention
-        attn = (q @ k.tranpose(-2, -1)) * self.scale
+        attn = (q @ k.transpose(-2, -1)) * self.scale
         attn = attn.softmax(dim=-1)
 
         #apply attention
-        x = (attn @ v).transpose(1, 2).reshape(batch_size, seq_len, self.width)
+        x = (attn @ v).transpose(1, 2).reshape(batch_size, seq_len, self.d_model)
         x = self.proj(x)
 
         return x
