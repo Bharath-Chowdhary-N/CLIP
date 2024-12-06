@@ -12,7 +12,7 @@ class image_encoder(nn.Module):
         return self.resnet(x)
 
 class text_encoder(nn.Module):
-    def __init__(self, vocab_size=50, context_length=64, transformer_width=128, transformer_heads=4, transformer_layers = 6, mlp_ratio=4, embed_dim = 128):
+    def __init__(self, vocab_size=50000, context_length=64, transformer_width=128, transformer_heads=4, transformer_layers = 6, mlp_ratio=4, embed_dim = 128):
         super().__init__()
         self.vocab_size = vocab_size # We can design only 50 vocab size because we are going to only give in parameters and some text and also some special characters
         self.context_length = context_length # set to 64, as we are gong to process at max 10 params, we can increase this value in future based on need
