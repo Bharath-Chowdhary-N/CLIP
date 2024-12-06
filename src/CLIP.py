@@ -11,6 +11,7 @@ class image_encoder(nn.Module):
     def forward(self, x):
         return self.resnet(x)
 
+
 class text_encoder(nn.Module):
     def __init__(self, vocab_size=50, context_length=64, transformer_width=128, transformer_heads=4, transformer_layers = 6, mlp_ratio=4, embed_dim = 128):
         super().__init__()
@@ -21,9 +22,15 @@ class text_encoder(nn.Module):
         self.transformer_heads = transformer_heads # heads for multihead attention
         self.mlp_ratio = mlp_ratio # how much you want to expand the representation of nn final layer
         self.embed_dim = embed_dim #how much you want to project the final text embedding
+        # assertion
+        print(self.vocab_size)
+        assert isinstance(self.vocab_size, int), "vocab_size must be an integer."
+        assert isinstance(self.transformer_width, int), "transformer_width must be an integer."
+#         print(f"vocab_size: {self.vocab_size}, transformer_width: {self.transformer_width}")
         # add token embedding
         self.token_embedding = nn.Embedding(self.vocab_size, self.transformer_width)
-        self.positional_embedding = nn.Parameter(torch.empty(self.context_length, self.transformer_width))
+        self.positional_embedding = nn.Parameter(torch.randn(self.context_length, self.transformer_width)*0.01)
+        
 
         transformer_blocks = [] #initialize empty list
 
@@ -34,7 +41,7 @@ class text_encoder(nn.Module):
 
         self.ln_final = nn.LayerNorm(self.transformer_width) #final layer normalization
 
-        self.text_projection = nn.Parameter(torch.empty(1, self.transformer_width, self.embed_dim))
+        self.text_projection = nn.Parameter(torch.randn(self.transformer_width, self.embed_dim)*0.01)
 
         self.initialize_parameters()
 
@@ -42,7 +49,6 @@ class text_encoder(nn.Module):
         nn.init.normal_(self.token_embedding.weight, std=0.02)
         nn.init.normal_(self.positional_embedding, std=0.01)
         nn.init.normal_(self.text_projection, std = self.transformer_width**-0.5)
-    
     def forward(self, text):
         
         x = self.token_embedding(text) #[batch_size, seq_len, tranformer_width]
@@ -52,20 +58,10 @@ class text_encoder(nn.Module):
         x = self.transformer(x) #[batch_size, seq_len, tranformer_width]
 
         x = self.ln_final(x) #[batch_size, seq_len, tranformer_width]
-        
-        
-#         print(text.argmax(dim=-1).shape)
-#         x = torch.index_select(x, dim=1, index=text.argmax(dim=-1))[torch.arange(x.shape[0])]
-        
-        print(x.shape)
-        
-        x =  x[torch.arange(x.shape[0]), text.argmax(dim=-1)] #take features from end of text embedding, as it would have absorbed features from other embeddings, #[batch_size, transformer_width]
-#         text.argmax(dim=-1)
-        
+
+        x = x[torch.arange(x.shape[0]), text.argmax(dim=-1)] #take features from end of text embedding, as it would have absorbed features from other embeddings, #[batch_size, transformer_width]
 
         x = x @ self.text_projection #[batch_size, embed_dim]
-        print(x.shape)
-        
 
         return x
 
@@ -151,12 +147,12 @@ class MultiheadAttention(nn.Module):
 
 
 class CLIP(nn.Module):
-    def __init__(self, embed_dim=128, temperature = 0.2):
+    def __init__(self, vocab_size=50, context_length=64, transformer_width=128, transformer_heads=4, transformer_layers = 6, mlp_ratio=4, embed_dim=128, temperature = 0.2):
         super().__init__()
         
         self.image_encoder = image_encoder(embed_dim=embed_dim)
 
-        self.text_encoder  = text_encoder(embed_dim=embed_dim) #change other params if you want to
+        self.text_encoder  = text_encoder(embed_dim=embed_dim, vocab_size=vocab_size) #change other params if you want to
 
         self.temperature = temperature #adjusts the diversity of the output, for more diverse output increase this value
 
@@ -175,10 +171,12 @@ class CLIP(nn.Module):
         logit_scale = self.logit_scale.exp()
         
         logits = logit_scale * image_features @ text_features.t()
+        
+        logits_per_text = logits.t()
 
-        labels = torch.arange(len(images)).to(images.device) 
+#         labels = torch.arange(len(images)).to(images.device) 
 
-        return logits, labels
+        return logits, logits_per_text
 
     # below functions encode_image and encode_text are not used in forward, but later if needed for inference, they can be handy
     def encode_image(self, images):
