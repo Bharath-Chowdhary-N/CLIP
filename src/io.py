@@ -50,5 +50,19 @@ class Image_Text_Dataset():
         tokenized = self.tokenizer(conditional_data, padding="max_length", max_length = self.context_length, truncation=True)
         return image_data.repeat(3,1,1), torch.Tensor(tokenized["input_ids"]).to(torch.int32) #conditional_data
     
+
+class Image_Text_Dataset_Inference(Image_Text_Dataset):
+    
+    def __getitem__(self, index):
+        item = return_cutout(self.image_data, self.subset_no_nans['RA degree'][index], self.subset_no_nans['DEC degree'][index], self.cutout_size, self.image_wcs)
+        image_data = torch.unsqueeze(torch.Tensor(normalize_image_simulated(item).astype('float32')), dim=0)
+        
+        conditional_data = f"(P1:{np.round(self.subset_no_nans['Inferred z'][index],3)}), (P2:{np.round(np.log10(self.subset_no_nans['Stellar mass w2sr'][index]), 3)})"
+
+        if self.do_transform:
+            image = self.transform(image)
+        
+        tokenized = self.tokenizer(conditional_data, padding="max_length", max_length = self.context_length, truncation=True)
+        return image_data.repeat(3,1,1), torch.Tensor(tokenized["input_ids"]).to(torch.int32), conditional_data
     
         
